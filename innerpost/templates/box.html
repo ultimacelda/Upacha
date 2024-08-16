@@ -1,0 +1,103 @@
+{% extends "index.html" %}
+
+{% block title %}BOX{% endblock %}
+
+{% block content %}
+<body class="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500">
+    <div id="email-info" class="text-center font-bold text-3xl text-red-500 bg-black"> </div>
+    <div id="status-bar" class="text-center font-bold text-3xl text-red-500 bg-black py-4">Page load...</div>
+
+        <!-- Оповещение о новых сообщениях -->
+    <div id="new-messages-alert" class="text-center font-bold text-2xl text-yellow-500 bg-black py-4" style="display: none;">
+        New messages added! Please <a href="#" onclick="location.reload();">refresh the page</a>.
+    </div>
+
+        <!-- Оповещение о завершении загрузки -->
+    <div id="all-messages-added" class="text-center font-bold text-2xl text-green-500 bg-black py-4" style="display: none;">
+        All messages have been added.
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("status-bar").textContent = "Authorization...";
+    
+            // Асинхронный запрос на запуск fetch_emails
+            fetch('/status_view/')
+                .then(response => response.json())
+                .then(data => {
+                    let statusMessage = "Error when uploading emails.";
+                    
+                    if (data.status === 'started') {
+                        statusMessage = "Downloading letters...";
+                    } else if (data.status === 'auth_error') {
+                        statusMessage = "Authorization error!";
+                    } else if (data.status === 'unknown_service') {
+                        statusMessage = "Unknown mail service!";
+                    } else if (data.status === 'server_error') {
+                        statusMessage = "Server error!";
+                    }
+    
+                    if (data.status === 'completed') {
+                        document.getElementById("status-bar").style.display = "none"; // Убираем статус-бар
+                        document.getElementById("all-messages-added").style.display = "block"; // Показываем сообщение о завершении
+                    } else {
+                        document.getElementById("status-bar").textContent = statusMessage; // Показываем статус ошибки, если загрузка не завершена
+                    }
+    
+                    if (data.email) {
+                        document.getElementById("email-info").textContent = data.email;
+                    }
+                    
+                    // Проверка, добавлены ли новые сообщения
+                    if (data.new_messages) {
+                        document.getElementById("new-messages-alert").style.display = "block";
+                    }
+                })
+                .catch(error => {
+                    document.getElementById("status-bar").textContent = "Network error.";
+                });
+        });
+    </script>
+    <hr style="border-width: 4px; border-color: rgb(255, 255, 255); border-style: solid">
+    <div class="container mx-auto mt-8 px-4">
+        <table class="border-4 border-gray-250 table-auto w-full bg-green-500 text-white font-bold shadow-md rounded-lg">
+            <tr>
+                <th class="px-4 py-2 text-center text-xl bg-black" colspan="3">Letters</th>
+            </tr>
+            <tbody>
+                <tr>
+                    <td class="border-4 px-4 py-2">Email</td>
+                    <td class="border-4 px-4 py-2">Subject</td>
+                    <td class="border-4 px-4 py-2">Posting time-receiving time</td>
+                </tr>
+                {% for letter in page_obj %}
+                <tr>
+                    <td class="border-4 px-4 py-2">{{ letter.mail }}</td>
+                    <td class="border-4 px-4 py-2">{{ letter.subject }}</td>
+                    <td class="border-4 px-4 py-2">P:  {{ letter.posting_time }} | R:  {{ letter.receiving_time }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Пагинация -->
+        <div class="pagination text-center mt-4 font-bold text-2xl">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1">&laquo; (First)</a>
+                    <a href="?page={{ page_obj.previous_page_number }}" class="text-white">Previous     </a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="text-white">    Next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}">(Last) &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</body>
+{% endblock %}
